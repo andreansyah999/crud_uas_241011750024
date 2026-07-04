@@ -51,3 +51,26 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/pages/edit', [PageController::class, 'edit'])->name('admin.pages.edit');
     Route::put('/pages/update', [PageController::class, 'update'])->name('admin.pages.update');
 });
+
+// Helper Route for Database Migration & Seeding (Useful for Railway/Production deployment)
+Route::get('/run-migration', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', [
+            '--force' => true,
+        ]);
+        $output = \Illuminate\Support\Facades\Artisan::output();
+        
+        // Seed if there are no users in the database
+        if (\App\Models\User::count() === 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', [
+                '--force' => true,
+            ]);
+            $output .= "\n" . \Illuminate\Support\Facades\Artisan::output();
+        }
+        
+        return 'Database successfully migrated (and seeded if empty)! Output:<br><pre>' . nl2br(e($output)) . '</pre>';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage() . '<br><br>Stack Trace:<br><pre>' . e($e->getTraceAsString()) . '</pre>';
+    }
+});
+
